@@ -40,8 +40,24 @@ class EditorJsLinkController extends Controller
             ]);
         }
 
-        $doc = new DOMDocument;
-        @$doc->loadHTML((string) $response->getBody());
+        $html = (string) $response->getBody();
+
+        // Convert to UTF-8 (even if it's already UTF-8, this ensures consistency)
+        $html = mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8');
+
+        // Add a UTF-8 meta tag if one is missing
+        if (!str_contains($html, 'charset')) {
+            $html = preg_replace(
+                '/<head(.*?)>/i',
+                '<head$1><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">',
+                $html
+            );
+        }
+
+        libxml_use_internal_errors(true);
+        $doc = new DOMDocument();
+        @$doc->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
+
         $nodes = $doc->getElementsByTagName('title');
         $title = $nodes->item(0)->nodeValue;
         $description = '';
